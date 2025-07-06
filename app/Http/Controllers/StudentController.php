@@ -12,17 +12,30 @@ class StudentController extends Controller
         return Student::all();
     }
 
-    function addStudent(Request $request) {
+    function addStudent(Request $request)
+    {
         $student = new Student();
-        $student->name=$request->name;
-        $student->email=$request->email;
-        $student->phone=$request->phone;
+        $student->name = $request->name;
+        $student->email = $request->email;
+        $student->phone = $request->phone;
         if ($student->save()) {
             return "Student Added Successfully";
-        }else{
+        } else {
             return "Student Not Added";
         }
+    }
 
+    function updateStudent(Request $request)
+    {
+        $student = Student::find($request->id);
+        $student->name = $request->name;
+        $student->email = $request->email;
+        $student->phone = $request->phone;
+        if ($student->save()) {
+            return ["result" => "Student Updated Successfully"];
+        }else{
+            return ["result" => "Student Not Updated"];
+        }
 
     }
 }
