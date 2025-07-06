@@ -25,7 +25,7 @@ class StudentController extends Controller
         }
     }
 
-    function updateStudent(Request $request)
+/*    function updateStudent(Request $request)
     {
         $student = Student::find($request->id);
         $student->name = $request->name;
@@ -37,5 +37,25 @@ class StudentController extends Controller
             return ["result" => "Student Not Updated"];
         }
 
+    }*/
+
+    public function updateStudent(Request $request, $id)
+    {
+        $student = Student::find($id);
+
+        if (!$student) {
+            return response()->json(['result' => 'Student Not Found'], 404);
+        }
+
+        $student->name = $request->name;
+        $student->email = $request->email;
+        $student->phone = $request->phone;
+
+        if ($student->save()) {
+            return response()->json(['result' => 'Student Updated Successfully']);
+        } else {
+            return response()->json(['result' => 'Student Not Updated'], 500);
+        }
     }
+
 }
