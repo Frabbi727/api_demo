@@ -5,13 +5,24 @@ namespace App\Http\Controllers;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
-
+use Illuminate\Support\Facades\Hash;
 class UserAuthController extends Controller
 {
     function login(Request $request)
     {
-        return "login_function";
-    }
+        $user = User::where('email', $request->email)->first();
+        if (!$user || !Hash::check($request->password, $user->password)) {
+            return ['result'=>"Username or Password is Incorrect","Success"=>false];
+        }
+        $success['token'] = $user->createToken('MyApp')->plainTextToken;
+        $success['name'] = $user->name;
+
+        // Return success response
+        return response()->json([
+            'status' => true,
+            'data' => $success,
+            'message' => 'User login Successfully'
+        ], 201);    }
 
 
     function signup(Request $request)
@@ -35,7 +46,7 @@ class UserAuthController extends Controller
         $user = User::create($request->all());
 
         // Generate token
-        $success['token'] = $user->createToken('MyApp')->plainTextToken;
+       $success['token'] = $user->createToken('MyApp')->plainTextToken;
         $success['name'] = $user->name;
 
         // Return success response
