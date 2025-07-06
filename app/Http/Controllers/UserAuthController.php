@@ -6,28 +6,56 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Hash;
+use Tymon\JWTAuth\Facades\JWTAuth;
+
+
 class UserAuthController extends Controller
 {
+
     function login(Request $request)
     {
-        $user = User::where('email', $request->email)->first();
-        if (!$user || !Hash::check($request->password, $user->password)) {
-            return ['result'=>"Username or Password is Incorrect","Success"=>false];
-        }
-        $success['token'] = $user->createToken('MyApp')->plainTextToken;
-        $success['name'] = $user->name;
+        // Validate input
+        $validator = Validator::make($request->all(), [
+            'email' => 'required|email',
+            'password' => 'required|string|min:6',
+        ]);
 
-        // Return success response
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Validation errors',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        // Credentials array
+        $credentials = $request->only('email', 'password');
+
+        // Attempt to generate a token for valid credentials
+        if (!$token = JWTAuth::attempt($credentials)) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Invalid email or password',
+            ], 401);
+        }
+
+        // Get authenticated user
+        $user = auth()->user();
+
+        // Return success response with JWT token
         return response()->json([
             'status' => true,
-            'data' => $success,
-            'message' => 'User login Successfully'
-        ], 201);    }
-
+            'data' => [
+                'token' => $token,
+                'name' => $user->name,
+                'email' => $user->email,
+            ],
+            'message' => 'User logged in successfully',
+        ], 200);
+    }
 
     function signup(Request $request)
     {
-        // Validate input using Validator
         $validator = Validator::make($request->all(), [
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users',
@@ -42,20 +70,31 @@ class UserAuthController extends Controller
             ], 422);
         }
 
-        // Create user directly (auto password hashing via 'password' => 'hashed' in model)
-        $user = User::create($request->all());
+        try {
+            $user = User::create([
+                'name' => $request->name,
+                'email' => $request->email,
+                'password' => Hash::make($request->password),
+            ]);
 
-        // Generate token
-       $success['token'] = $user->createToken('MyApp')->plainTextToken;
-        $success['name'] = $user->name;
+            $token = JWTAuth::fromUser($user);
 
-        // Return success response
-        return response()->json([
-            'status' => true,
-            'data' => $success,
-            'message' => 'User Created Successfully'
-        ], 201);
+            return response()->json([
+                'status' => true,
+                'data' => [
+                    'token' => $token,
+                    'name' => $user->name
+                ],
+                'message' => 'User Created Successfully'
+            ], 201);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Signup failed',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
     }
-
 
 }
